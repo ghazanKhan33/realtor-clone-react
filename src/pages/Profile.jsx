@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import {doc,updateDoc} from 'firebase/firestore'
+import { doc, updateDoc } from "firebase/firestore";
 import { getAuth, updateProfile } from "firebase/auth";
-import {db} from '../firebase'
+import { db } from "../firebase";
+import { FcHome } from "react-icons/fc";
 
 const Profile = () => {
   const auth = getAuth();
@@ -26,20 +27,20 @@ const Profile = () => {
   };
 
   const onSubmit = async () => {
-    try{
-      if(auth.currentUser.displayName !== formData.name){
-        await updateProfile(auth.currentUser,{
-          displayName: formData.name
-        })
+    try {
+      if (auth.currentUser.displayName !== formData.name) {
+        await updateProfile(auth.currentUser, {
+          displayName: formData.name,
+        });
         const docRef = doc(db, "users", auth.currentUser.uid);
         await updateDoc(docRef, {
-          name: formData.name
-        })
-        toast.success("Profile details updated")
+          name: formData.name,
+        });
+        toast.success("Profile details updated");
       }
-    }catch(error){
-      toast.error("Could not update the profile details")
-      console.log(error)
+    } catch (error) {
+      toast.error("Could not update the profile details");
+      console.log(error);
     }
   };
   return (
@@ -54,7 +55,9 @@ const Profile = () => {
               id="name"
               value={formData.name}
               disabled={!changeDetail}
-              className={`w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition ease-in-out ${changeDetail ? 'bg-red-100 focus:bg-red-100' : ''}`}
+              className={`w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition ease-in-out ${
+                changeDetail ? "bg-red-100 focus:bg-red-100" : ""
+              }`}
             />
             <input
               onChange={onChange}
@@ -85,6 +88,15 @@ const Profile = () => {
               </p>
             </div>
           </form>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white uppercase px-7 py-3 text-sm font-medium rounded shadow-md hover:bg-blue-700 transition duration-150 ease-in-out hover:shadow-lg mt-6 active:bg-blue-800"
+          >
+            <Link className="flex justify-center items-center" to="/create-listing">
+              <FcHome className="mr-2 text-3xl bg-red-200 rounded-full border-2" />
+              Sell or rent your home
+            </Link>
+          </button>
         </div>
       </section>
     </>
