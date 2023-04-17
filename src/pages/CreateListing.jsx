@@ -1,6 +1,10 @@
 import React, { useState } from "react";
+import Spinner from "../components/Spinner";
+import { toast } from "react-toastify";
 
 const CreateListing = () => {
+  const [geolocationEnabled, setGeolocationEnabled] = useState(false);
+  const [loading,setLoading] = useState(false);
   const [formData, setFormData] = useState({
     type: "sale",
     name: "",
@@ -13,6 +17,8 @@ const CreateListing = () => {
     offer: false,
     regularPrice: 0,
     discountedPrice: 0,
+    latitude: 0,
+    longitude: 0,
   });
   const {
     type,
@@ -26,14 +32,50 @@ const CreateListing = () => {
     offer,
     regularPrice,
     discountedPrice,
+    latitude,
+    longitude,
   } = formData;
 
-  const onChange = () => {};
+  const onChange = (e) => {
+    let boolean = null;
+    if (e.target.value === "true") {
+      boolean = true;
+    }
+    if (e.target.value === "false") {
+      boolean = false;
+    }
+    if (e.target.files) {
+      setFormData((pre) => ({
+        ...pre,
+        images: e.target.files,
+      }));
+    }
+    if (!e.target.files) {
+      setFormData((pre) => ({
+        ...pre,
+        [e.target.id]: boolean ?? e.target.value,
+      }));
+    }
+  };
+
+  const onSubmit = (e)=>{
+    e.preventDefault();
+    setLoading(true);
+    if(discountedPrice >= regularPrice){
+        setLoading(false)
+        toast.error("Discounted price needs to be less than regular price")
+        return
+    }
+
+  }
+  if(loading){
+    return <Spinner/>
+  }
 
   return (
     <main className="max-w-md px-2 mx-auto">
       <h1 className="text-3xl text-center mt-6 font-bold">Create a Listing</h1>
-      <form className="flex flex-col gap-6 mb-6">
+      <form onSubmit={onSubmit} className="flex flex-col gap-6 mb-6">
         <div>
           <label className="text-lg mt-6 font-semibold">Sell / Rent</label>
           <div className="flex gap-6">
@@ -173,6 +215,36 @@ const CreateListing = () => {
             className="w-full px-4 py-2 text-lg text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600"
           />
         </div>
+        {geolocationEnabled && (
+          <div className="flex gap-6">
+            <div>
+              <p className="text-lg font-semibold">Latitude</p>
+              <input
+                type="number"
+                id="latitude"
+                value={latitude}
+                min="-90"
+                max="90"
+                onChange={onChange}
+                required={geolocationEnabled}
+                className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600 text-center"
+              />
+            </div>
+            <div>
+              <p className="text-lg font-semibold">Longitude</p>
+              <input
+                type="number"
+                id="longitude"
+                value={longitude}
+                min="-180"
+                max="180"
+                onChange={onChange}
+                required={geolocationEnabled}
+                className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600 text-center"
+              />
+            </div>
+          </div>
+        )}
         <div>
           <label className="text-lg font-semibold">Description</label>
           <textarea
@@ -265,7 +337,12 @@ const CreateListing = () => {
             className="w-full px-3 py-1.5 text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600"
           />
         </div>
-        <button type='submit' className="w-full px-7 py-3 bg-blue-600 text-white font-medium text-sm uppercase rounded-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out">Create Listing</button>
+        <button
+          type="submit"
+          className="w-full px-7 py-3 bg-blue-600 text-white font-medium text-sm uppercase rounded-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+        >
+          Create Listing
+        </button>
       </form>
     </main>
   );
