@@ -132,7 +132,7 @@ const CreateListing = () => {
       console.log(error);
       toast.error("Images not uploaded");
     });
-    const formDataCopy = { ...formData, imgUrls, timestamp: serverTimestamp() };
+    const formDataCopy = { ...formData, imgUrls, timestamp: serverTimestamp(), userRef: auth.currentUser.uid };
     delete formDataCopy.images;
     !formDataCopy.offer && delete formDataCopy.discountedPrice;
     const docRef = await addDoc(collection(db, "listings"), formDataCopy);
