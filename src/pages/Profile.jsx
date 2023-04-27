@@ -76,7 +76,7 @@ const Profile = () => {
     };
     fetchUserListings();
   }, [auth.currentUser.uid]);
-  console.log({ listings });
+
   return (
     <>
       <section className="max-w-6xl mx-auto flex flex-col justify-center items-center">
@@ -136,11 +136,11 @@ const Profile = () => {
           </button>
         </div>
       </section>
-      <div className="max-w-6xl px-3 mt-6 mx-auto">
+      <div className="max-w-6xl px-3 my-6 mx-auto">
         {!loading && listings.length > 0 && (
           <>
             <h2 className="text-2xl text-center font-semibold">My Listings</h2>
-            <ul>
+            <ul className="sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 my-6">
               {listings.map((listing) => (
                 <ListingItem
                   key={listing.id}
