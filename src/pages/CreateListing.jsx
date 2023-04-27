@@ -1,10 +1,22 @@
 import React, { useState } from "react";
 import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
+import { getAuth } from "firebase/auth";
+import { v4 as uuid } from "uuid";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 const CreateListing = () => {
-  const [geolocationEnabled, setGeolocationEnabled] = useState(false);
-  const [loading,setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const auth = getAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     type: "sale",
     name: "",
@@ -19,6 +31,7 @@ const CreateListing = () => {
     discountedPrice: 0,
     latitude: 0,
     longitude: 0,
+    images: {},
   });
   const {
     type,
@@ -34,6 +47,7 @@ const CreateListing = () => {
     discountedPrice,
     latitude,
     longitude,
+    images,
   } = formData;
 
   const onChange = (e) => {
@@ -58,18 +72,77 @@ const CreateListing = () => {
     }
   };
 
-  const onSubmit = (e)=>{
+  const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    if(discountedPrice >= regularPrice){
-        setLoading(false)
-        toast.error("Discounted price needs to be less than regular price")
-        return
+    if (+discountedPrice >= +regularPrice) {
+      setLoading(false);
+      toast.error("Discounted price needs to be less than regular price");
+      return;
     }
+    if (images.length > 6) {
+      setLoading(false);
+      toast.error("Maximum 6 images are allowed");
+      return;
+    }
+    const storeImage = async (image) => {
+      return new Promise((resolve, reject) => {
+        const storage = getStorage();
+        const filename = `${auth.currentUser.uid}-${image.name}-${uuid()}`;
+        const storageRef = ref(storage, filename);
+        const uploadTask = uploadBytesResumable(storageRef, image);
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            // Observe state change events such as progress, pause, and resume
+            // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log("Upload is " + progress + "% done");
+            switch (snapshot.state) {
+              case "paused":
+                console.log("Upload is paused");
+                break;
+              case "running":
+                console.log("Upload is running");
+                break;
+              default:
+                break;
+            }
+          },
+          (error) => {
+            reject(error);
+            setLoading(false);
+          },
+          () => {
+            // Handle successful uploads on complete
+            // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+              resolve(downloadURL);
+              setLoading(false);
+            });
+          }
+        );
+      });
+    };
+    const imgUrls = await Promise.all(
+      [...images].map((image) => storeImage(image))
+    ).catch((error) => {
+      setLoading(false);
+      console.log(error);
+      toast.error("Images not uploaded");
+    });
+    const formDataCopy = { ...formData, imgUrls, timestamp: serverTimestamp() };
+    delete formDataCopy.images;
+    !formDataCopy.offer && delete formDataCopy.discountedPrice;
+    const docRef = await addDoc(collection(db, "listings"), formDataCopy);
+    setLoading(false);
+    toast.success("Lisiting created");
+    navigate(`/category/${formData.type}/${docRef.id}`);
+  };
 
-  }
-  if(loading){
-    return <Spinner/>
+  if (loading) {
+    return <Spinner />;
   }
 
   return (
@@ -215,36 +288,33 @@ const CreateListing = () => {
             className="w-full px-4 py-2 text-lg text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600"
           />
         </div>
-        {geolocationEnabled && (
-          <div className="flex gap-6">
-            <div>
-              <p className="text-lg font-semibold">Latitude</p>
-              <input
-                type="number"
-                id="latitude"
-                value={latitude}
-                min="-90"
-                max="90"
-                onChange={onChange}
-                required={geolocationEnabled}
-                className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600 text-center"
-              />
-            </div>
-            <div>
-              <p className="text-lg font-semibold">Longitude</p>
-              <input
-                type="number"
-                id="longitude"
-                value={longitude}
-                min="-180"
-                max="180"
-                onChange={onChange}
-                required={geolocationEnabled}
-                className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600 text-center"
-              />
-            </div>
+        <div className="flex gap-6">
+          <div>
+            <p className="text-lg font-semibold">Latitude</p>
+            <input
+              type="number"
+              id="latitude"
+              value={latitude}
+              min="-90"
+              max="90"
+              onChange={onChange}
+              className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600 text-center"
+            />
           </div>
-        )}
+          <div>
+            <p className="text-lg font-semibold">Longitude</p>
+            <input
+              type="number"
+              id="longitude"
+              value={longitude}
+              min="-180"
+              max="180"
+              onChange={onChange}
+              className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:border-slate-600 text-center"
+            />
+          </div>
+        </div>
+
         <div>
           <label className="text-lg font-semibold">Description</label>
           <textarea
@@ -322,7 +392,7 @@ const CreateListing = () => {
             </div>
           </div>
         )}
-        <div className="">
+        <div>
           <p className="text-lg font-semibold">Images</p>
           <p className="text-gray-500">
             The first image will be the cover (max 6)
